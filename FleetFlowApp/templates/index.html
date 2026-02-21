@@ -1,7 +1,871 @@
-{% extends "files/base.html" %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FleetFlow Dashboard</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        background: '#F8F9FB',
+                    }
+                }
+            }
+        }
+    </script>
 
-{% block title %}Home{% endblock %}
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
 
-{% block content %}
+    <style>
+        /* Custom scrollbar for a cleaner look */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #e5e7eb;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #d1d5db;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+    </style>
+</head>
+<body class="bg-background min-h-screen flex flex-col md:flex-row text-gray-900 overflow-hidden">
 
-{% endblock %}
+    <aside class="w-full md:w-64 bg-white border-r border-gray-100 flex-shrink-0 flex-col hidden md:flex h-screen">
+        <div class="p-6 flex items-center gap-3">
+            <div class="bg-gray-900 p-1.5 rounded-lg">
+                <i data-lucide="truck" class="text-white w-5 h-5"></i>
+            </div>
+            <span class="text-xl font-extrabold tracking-tight">FleetFlow</span>
+        </div>
+        
+        <nav class="flex-1 px-4 space-y-8 overflow-y-auto pt-2" id="sidebar-nav">
+            <div>
+                <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 px-3">Fleet</h4>
+                <ul class="space-y-1">
+                    <li>
+                        <button onclick="changeView('dashboard')" id="nav-dashboard" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50/50">
+                            <i data-lucide="layout-dashboard" class="w-[18px] h-[18px]"></i> Dashboard
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="changeView('vehicles')" id="nav-vehicles" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50/50">
+                            <i data-lucide="truck" class="w-[18px] h-[18px]"></i> Vehicles Registry
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="changeView('drivers')" id="nav-drivers" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50/50">
+                            <i data-lucide="user-check" class="w-[18px] h-[18px]"></i> Performance
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            
+            <div>
+                <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 px-3">Operations</h4>
+                <ul class="space-y-1">
+                    <li>
+                        <button onclick="changeView('dispatch')" id="nav-dispatch" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50/50">
+                            <i data-lucide="map" class="w-[18px] h-[18px]"></i> Trip Dispatcher
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="changeView('expenses')" id="nav-expenses" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50/50">
+                            <i data-lucide="credit-card" class="w-[18px] h-[18px]"></i> Expenses & Fuel
+                        </button>
+                    </li>
+                </ul>
+            </div>
+
+            <div>
+                <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 px-3">Service</h4>
+                <ul class="space-y-1">
+                    <li>
+                        <button onclick="changeView('maintenance')" id="nav-maintenance" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50/50">
+                            <i data-lucide="wrench" class="w-[18px] h-[18px]"></i> Maintenance Logs
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="changeView('analytics')" id="nav-analytics" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50/50">
+                            <i data-lucide="bar-chart-3" class="w-[18px] h-[18px]"></i> Analytics
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <div class="p-4 border-t border-gray-100">
+            <div class="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer group">
+                <div class="w-10 h-10 rounded-full bg-gray-200 border-2 border-white shadow-sm flex items-center justify-center text-gray-600 font-bold uppercase">
+                    {{ request.user.username.0|default:"U" }}
+                </div>
+                <div class="flex-1 overflow-hidden">
+                    <p class="text-sm font-bold truncate">{{ request.user.username|default:"Logged User" }}</p>
+                    <p class="text-xs text-gray-500 truncate">{{ request.user.email|default:"user@fleetflow.com" }}</p>
+                </div>
+                <i data-lucide="chevron-right" class="text-gray-400 group-hover:text-gray-900 w-4 h-4"></i>
+            </div>
+        </div>
+    </aside>
+
+    <div class="md:hidden bg-white border-b border-gray-100 p-4 flex justify-between items-center w-full">
+        <div class="flex items-center gap-2">
+            <i data-lucide="truck" class="text-gray-900 w-6 h-6"></i>
+            <span class="text-lg font-extrabold">FleetFlow</span>
+        </div>
+    </div>
+
+    <main class="flex-1 p-4 md:p-8 overflow-y-auto h-[calc(100vh-65px)] md:h-screen bg-background">
+        <div class="max-w-6xl mx-auto" id="app-content">
+            </div>
+    </main>
+
+    <div id="modal-vehicle" class="fixed inset-0 bg-gray-900/40 backdrop-blur-sm items-center justify-center z-50 hidden">
+        <div class="modal-box bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden transform scale-95 opacity-0">
+            <div class="flex items-center justify-between p-6 border-b border-gray-100">
+                <h3 class="text-lg font-bold text-gray-900">Add New Vehicle</h3>
+                <button onclick="closeModal('vehicle')" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <form id="form-vehicle" onsubmit="addVehicle(event)">
+                    <div class="mb-4">
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Vehicle Model / Name</label>
+                        <input type="text" name="name" placeholder="e.g. Volvo FH16" required class="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">License Plate</label>
+                        <input type="text" name="plate" placeholder="ABC-1234" required class="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Max Capacity (kg)</label>
+                            <input type="number" name="capacity" placeholder="20000" required class="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Current Odometer (km)</label>
+                            <input type="number" name="odometer" placeholder="0" required class="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all">
+                        </div>
+                    </div>
+                    <div class="mt-6 flex gap-3">
+                        <button type="button" class="flex-1 px-4 py-2.5 rounded-lg font-medium text-sm bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 transition-colors" onclick="closeModal('vehicle')">Cancel</button>
+                        <button type="submit" class="flex-1 px-4 py-2.5 rounded-lg font-medium text-sm bg-gray-900 text-white hover:bg-gray-800 transition-colors flex items-center justify-center">Save Asset</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-trip" class="fixed inset-0 bg-gray-900/40 backdrop-blur-sm items-center justify-center z-50 hidden">
+        <div class="modal-box bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden transform scale-95 opacity-0">
+            <div class="flex items-center justify-between p-6 border-b border-gray-100">
+                <h3 class="text-lg font-bold text-gray-900">Dispatch New Trip</h3>
+                <button onclick="closeModal('trip')" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <form id="form-trip" onsubmit="dispatchTrip(event)">
+                    <div class="mb-4">
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Assign Vehicle</label>
+                        <select name="vehicleId" id="trip-vehicle-select" required class="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-900 bg-white">
+                            </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Assign Driver</label>
+                        <select name="driverId" id="trip-driver-select" required class="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-900 bg-white">
+                            </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Cargo Weight (kg)</label>
+                        <input type="number" name="weight" placeholder="Enter total load weight" required class="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all">
+                    </div>
+                    <div class="mt-6 flex gap-3">
+                        <button type="button" class="flex-1 px-4 py-2.5 rounded-lg font-medium text-sm bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 transition-colors" onclick="closeModal('trip')">Cancel</button>
+                        <button type="submit" class="flex-1 px-4 py-2.5 rounded-lg font-medium text-sm text-white bg-blue-600 hover:bg-blue-700 transition-colors flex items-center justify-center">Dispatch Trip</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-maintenance" class="fixed inset-0 bg-gray-900/40 backdrop-blur-sm items-center justify-center z-50 hidden">
+        <div class="modal-box bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden transform scale-95 opacity-0">
+            <div class="flex items-center justify-between p-6 border-b border-gray-100">
+                <h3 class="text-lg font-bold text-gray-900">Log Maintenance</h3>
+                <button onclick="closeModal('maintenance')" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <form id="form-maintenance" onsubmit="logMaintenance(event)">
+                    <div class="mb-4">
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Select Vehicle</label>
+                        <select name="vehicleId" id="maint-vehicle-select" required class="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-900 bg-white">
+                            </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Service Type</label>
+                        <input type="text" name="type" placeholder="e.g. Oil Change, Brake Pad Replacement" required class="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Total Cost ($)</label>
+                            <input type="number" name="cost" placeholder="0.00" required class="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Date</label>
+                            <input type="date" name="date" id="maint-date" required class="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all">
+                        </div>
+                    </div>
+                    <div class="mt-6 flex gap-3">
+                        <button type="button" class="flex-1 px-4 py-2.5 rounded-lg font-medium text-sm bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 transition-colors" onclick="closeModal('maintenance')">Cancel</button>
+                        <button type="submit" class="flex-1 px-4 py-2.5 rounded-lg font-medium text-sm text-white bg-orange-600 hover:bg-orange-700 transition-colors flex items-center justify-center">Submit Log</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- STATE MANAGEMENT ---
+        // Dynamically inject JSON variables from Django backend using safe template filter
+        const state = {
+            currentView: 'dashboard',
+            vehicles: {{ vehicles|safe }},
+            drivers: {{ drivers|safe }},
+            trips: {{ trips|safe }},
+            maintenanceLogs: {{ maintenanceLogs|safe }},
+            fuelLogs: {{ fuelLogs|safe }}
+        };
+
+        // Set default date for maintenance form
+        document.getElementById('maint-date').value = new Date().toISOString().split('T')[0];
+
+        // --- HELPER FUNCTIONS ---
+        const getStatusStyles = (status) => {
+            const styles = {
+                'Available': 'bg-green-100 text-green-700 border-green-200',
+                'Active': 'bg-green-100 text-green-700 border-green-200',
+                'On Trip': 'bg-blue-100 text-blue-700 border-blue-200',
+                'Dispatched': 'bg-blue-100 text-blue-700 border-blue-200',
+                'On Duty': 'bg-blue-100 text-blue-700 border-blue-200',
+                'In Shop': 'bg-orange-100 text-orange-700 border-orange-200',
+                'Suspended': 'bg-red-100 text-red-700 border-red-200',
+                'Cancelled': 'bg-red-100 text-red-700 border-red-200',
+                'Out of Service': 'bg-red-100 text-red-700 border-red-200',
+                'Completed': 'bg-gray-100 text-gray-700 border-gray-200',
+                'Off Duty': 'bg-gray-100 text-gray-700 border-gray-200',
+            };
+            return styles[status] || 'bg-gray-100 text-gray-600 border-gray-200';
+        };
+
+        const renderPill = (status) => {
+            return `<span class="px-3 py-1 rounded-full text-xs font-semibold border ${getStatusStyles(status)} inline-flex items-center">${status}</span>`;
+        };
+
+        // --- RENDERERS ---
+
+        const renderDashboard = () => {
+            const activeVehicles = state.vehicles.filter(v => v.status === 'Available' || v.status === 'On Trip').length;
+            const tripsToday = state.trips.length;
+            const inShop = state.vehicles.filter(v => v.status === 'In Shop').length;
+            const utilPercent = state.vehicles.length ? Math.round((state.vehicles.filter(v => v.status === 'On Trip').length / state.vehicles.length) * 100) : 0;
+
+            let tableRows = state.vehicles.map(v => `
+                <tr class="hover:bg-gray-50/50 transition-colors">
+                    <td class="px-6 py-4 text-sm text-gray-500 font-medium">${v.id}</td>
+                    <td class="px-6 py-4 text-sm font-bold text-gray-900">${v.name}</td>
+                    <td class="px-6 py-4 text-sm text-gray-600">${v.plate}</td>
+                    <td class="px-6 py-4 text-sm text-gray-600">${v.odometer.toLocaleString()} km</td>
+                    <td class="px-6 py-4 text-right">${renderPill(v.status)}</td>
+                </tr>
+            `).join('');
+
+            return `
+                <div class="space-y-6">
+                    <div class="flex justify-between items-end">
+                        <div>
+                            <h2 class="text-3xl font-extrabold text-gray-900 tracking-tight">Fleet Overview</h2>
+                            <p class="text-gray-500 mt-1 font-medium">Real-time logistics performance</p>
+                        </div>
+                        <div class="flex gap-3">
+                            <button onclick="openModal('trip')" class="px-4 py-2.5 rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-all duration-200 bg-white text-gray-700 border border-gray-200 hover:bg-gray-50">New Trip</button>
+                            <button onclick="openModal('vehicle')" class="px-4 py-2.5 rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-all duration-200 bg-gray-900 text-white hover:bg-gray-800">Add Vehicle</button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                            <div class="flex justify-between items-start mb-4">
+                                <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider">Active Assets</h3>
+                                <div class="p-2 bg-green-50 rounded-lg"><i data-lucide="truck" class="text-green-600 w-5 h-5"></i></div>
+                            </div>
+                            <p class="text-4xl font-extrabold text-gray-900">${activeVehicles}</p>
+                            <p class="text-sm font-semibold text-green-600 mt-2 flex items-center gap-1">
+                                <i data-lucide="check-circle-2" class="w-4 h-4"></i> Ready for dispatch
+                            </p>
+                        </div>
+                        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                            <div class="flex justify-between items-start mb-4">
+                                <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider">Trips Today</h3>
+                                <div class="p-2 bg-blue-50 rounded-lg"><i data-lucide="map" class="text-blue-600 w-5 h-5"></i></div>
+                            </div>
+                            <p class="text-4xl font-extrabold text-gray-900">${tripsToday}</p>
+                            <p class="text-sm font-semibold text-blue-600 mt-2">
+                                ${utilPercent}% Fleet Utilization
+                            </p>
+                        </div>
+                        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                            <div class="flex justify-between items-start mb-4">
+                                <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider">Maintenance</h3>
+                                <div class="p-2 bg-orange-50 rounded-lg"><i data-lucide="wrench" class="text-orange-600 w-5 h-5"></i></div>
+                            </div>
+                            <p class="text-4xl font-extrabold text-gray-900">${inShop}</p>
+                            <p class="text-sm font-semibold text-orange-600 mt-2 flex items-center gap-1">
+                                <i data-lucide="alert-circle" class="w-4 h-4"></i> Action Required
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-0 overflow-hidden">
+                        <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                            <h3 class="text-lg font-bold text-gray-900">Live Fleet Status</h3>
+                            <button class="text-sm font-semibold text-blue-600 hover:text-blue-800">Detailed View</button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead class="bg-white border-b border-gray-100">
+                                    <tr>
+                                        <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">ID</th>
+                                        <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Vehicle</th>
+                                        <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">License</th>
+                                        <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Odometer</th>
+                                        <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-50">
+                                    ${tableRows}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+        };
+
+        const renderVehicles = () => {
+            let tableRows = state.vehicles.map(v => `
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-6 py-4">
+                        <p class="text-sm font-bold text-gray-900">${v.name}</p>
+                        <p class="text-xs text-gray-500 mt-0.5">${v.id} • ${v.plate}</p>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-600">${v.capacity.toLocaleString()} kg</td>
+                    <td class="px-6 py-4 text-sm text-gray-600">${v.odometer.toLocaleString()} km</td>
+                    <td class="px-6 py-4">${renderPill(v.status)}</td>
+                    <td class="px-6 py-4 text-right">
+                        <button onclick="toggleVehicleStatus('${v.id}')" class="text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors">
+                            Toggle Status
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+
+            return `
+                <div class="space-y-6">
+                    <div class="flex justify-between items-end">
+                        <div>
+                            <h2 class="text-3xl font-extrabold text-gray-900 tracking-tight">Vehicle Registry</h2>
+                            <p class="text-gray-500 mt-1 font-medium">Manage fleet assets and capacities</p>
+                        </div>
+                        <button onclick="openModal('vehicle')" class="px-4 py-2.5 rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-all duration-200 bg-gray-900 text-white hover:bg-gray-800">
+                            <i data-lucide="plus" class="w-4 h-4"></i> Add Vehicle
+                        </button>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-0 overflow-hidden overflow-x-auto">
+                        <table class="w-full text-left min-w-max">
+                            <thead class="bg-gray-50/80 border-b border-gray-100">
+                                <tr>
+                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Vehicle Details</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Capacity</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Odometer</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                ${tableRows}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        };
+
+        const renderDispatch = () => {
+            let tableRows = state.trips.length === 0 
+                ? `<tr><td colSpan="5" class="px-6 py-8 text-center text-gray-500">No trips recorded yet.</td></tr>`
+                : state.trips.map(t => {
+                    const v = state.vehicles.find(v => v.id === t.vehicleId);
+                    const d = state.drivers.find(d => d.id === t.driverId);
+                    return `
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-6 py-4">
+                                <p class="text-sm font-bold text-gray-900">${t.id}</p>
+                                <p class="text-xs text-gray-500 mt-0.5">${t.date}</p>
+                            </td>
+                            <td class="px-6 py-4">
+                                <p class="text-sm font-bold text-gray-900">${v ? v.name : 'Unknown'}</p>
+                                <p class="text-xs text-gray-500 mt-0.5">${d ? d.name : 'Unknown'}</p>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-600">${t.cargoWeight.toLocaleString()} kg</td>
+                            <td class="px-6 py-4">${renderPill(t.status)}</td>
+                            <td class="px-6 py-4 text-right">
+                                ${t.status === 'Dispatched' ? `
+                                    <button onclick="completeTrip('${t.id}')" class="px-3 py-1.5 rounded-lg font-medium text-xs flex items-center justify-center gap-2 transition-all duration-200 bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 ml-auto">
+                                        Complete Trip
+                                    </button>
+                                ` : ''}
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+            return `
+                <div class="space-y-6">
+                    <div class="flex justify-between items-end">
+                        <div>
+                            <h2 class="text-3xl font-extrabold text-gray-900 tracking-tight">Trip Dispatcher</h2>
+                            <p class="text-gray-500 mt-1 font-medium">Assign vehicles and monitor active routes</p>
+                        </div>
+                        <button onclick="openModal('trip')" class="px-4 py-2.5 rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-all duration-200 bg-gray-900 text-white hover:bg-gray-800">
+                            <i data-lucide="map" class="w-4 h-4"></i> Create Trip
+                        </button>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-0 overflow-hidden overflow-x-auto">
+                        <table class="w-full text-left min-w-max">
+                            <thead class="bg-gray-50/80 border-b border-gray-100">
+                                <tr>
+                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Trip ID / Date</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Vehicle & Driver</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Cargo</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                ${tableRows}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        };
+
+        const renderMaintenance = () => {
+            let tableRows = state.maintenanceLogs.length === 0 
+                ? `<tr><td colSpan="4" class="px-6 py-8 text-center text-gray-500">No maintenance logs found.</td></tr>`
+                : state.maintenanceLogs.map(log => {
+                    const v = state.vehicles.find(v => v.id === log.vehicleId);
+                    return `
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-6 py-4">
+                                <p class="text-sm font-bold text-gray-900">${log.date}</p>
+                                <p class="text-xs text-gray-500 mt-0.5">${log.id}</p>
+                            </td>
+                            <td class="px-6 py-4">
+                                <p class="text-sm font-semibold text-gray-900">${v ? v.name : log.vehicleId}</p>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-600">${log.type}</td>
+                            <td class="px-6 py-4 text-right text-sm font-bold text-gray-900">$${log.cost.toLocaleString()}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+            return `
+                <div class="space-y-6">
+                    <div class="flex justify-between items-end">
+                        <div>
+                            <h2 class="text-3xl font-extrabold text-gray-900 tracking-tight">Maintenance Logs</h2>
+                            <p class="text-gray-500 mt-1 font-medium">Track repairs and vehicle health</p>
+                        </div>
+                        <button onclick="openModal('maintenance')" class="px-4 py-2.5 rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-all duration-200 bg-gray-900 text-white hover:bg-gray-800">
+                            <i data-lucide="wrench" class="w-4 h-4"></i> Log Service
+                        </button>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-0 overflow-hidden overflow-x-auto">
+                        <table class="w-full text-left min-w-max">
+                            <thead class="bg-gray-50/80 border-b border-gray-100">
+                                <tr>
+                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Date / ID</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Vehicle</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Service Type</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Cost</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                ${tableRows}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        };
+
+        const renderDrivers = () => {
+            let tableRows = state.drivers.map(d => {
+                const isExpired = new Date(d.licenseExpiry) < new Date();
+                const scoreColor = d.safetyScore > 90 ? 'bg-green-500' : 'bg-orange-500';
+                return `
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-6 py-4">
+                            <p class="text-sm font-bold text-gray-900">${d.name}</p>
+                            <p class="text-xs text-gray-500 mt-0.5">${d.id}</p>
+                        </td>
+                        <td class="px-6 py-4">
+                            <p class="text-sm font-semibold flex items-center gap-1 ${isExpired ? 'text-red-600' : 'text-gray-600'}">
+                                ${isExpired ? '<i data-lucide="shield-alert" class="w-3.5 h-3.5"></i>' : ''} ${d.licenseExpiry}
+                            </p>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex items-center gap-2">
+                                <div class="w-full bg-gray-200 rounded-full h-2 max-w-[100px]">
+                                    <div class="${scoreColor} h-2 rounded-full" style="width: ${d.safetyScore}%"></div>
+                                </div>
+                                <span class="text-sm font-semibold text-gray-700">${d.safetyScore}</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            ${renderPill(isExpired ? 'Suspended' : d.status)}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            return `
+                <div class="space-y-6">
+                    <div class="flex justify-between items-end">
+                        <div>
+                            <h2 class="text-3xl font-extrabold text-gray-900 tracking-tight">Driver Performance</h2>
+                            <p class="text-gray-500 mt-1 font-medium">Manage personnel and safety compliance</p>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-0 overflow-hidden overflow-x-auto">
+                        <table class="w-full text-left min-w-max">
+                            <thead class="bg-gray-50/80 border-b border-gray-100">
+                                <tr>
+                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Driver Details</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">License Expiry</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Safety Score</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                ${tableRows}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        };
+
+        const renderExpensesAnalytics = () => {
+            const totalMaintenance = state.maintenanceLogs.reduce((acc, curr) => acc + curr.cost, 0);
+            const totalFuel = state.fuelLogs.reduce((acc, curr) => acc + curr.cost, 0);
+            const mockChartHeights = [65, 45, 80, 55, 90, 75, 85];
+            
+            let chartBars = mockChartHeights.map(h => `
+                <div class="flex-1 bg-gray-100 rounded-t-sm relative group hover:bg-gray-200 transition-colors">
+                    <div class="absolute bottom-0 w-full bg-blue-600 rounded-t-sm transition-all duration-500" style="height: ${h}%"></div>
+                </div>
+            `).join('');
+
+            return `
+                <div class="space-y-6">
+                    <div class="flex justify-between items-end">
+                        <div>
+                            <h2 class="text-3xl font-extrabold text-gray-900 tracking-tight">Analytics & Expenses</h2>
+                            <p class="text-gray-500 mt-1 font-medium">Financial overview and fuel logging</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                            <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Total Operational Cost</h3>
+                            <p class="text-4xl font-extrabold text-gray-900">$${(totalMaintenance + totalFuel).toLocaleString()}</p>
+                            <div class="mt-4 space-y-2">
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">Maintenance</span>
+                                    <span class="font-semibold">$${totalMaintenance.toLocaleString()}</span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">Fuel</span>
+                                    <span class="font-semibold">$${totalFuel.toLocaleString()}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                            <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Fleet Fuel Efficiency</h3>
+                            <div class="h-32 flex items-end gap-2 mt-4">
+                                ${chartBars}
+                            </div>
+                            <div class="flex justify-between mt-2 text-xs text-gray-400 font-semibold">
+                                <span>Mon</span><span>Sun</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        };
+
+        // --- CONTROLLERS ---
+
+        const updateSidebarUI = () => {
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-gray-50', 'text-gray-900', 'border-gray-200/60', 'shadow-sm');
+                btn.classList.add('text-gray-500', 'border-transparent');
+                
+                // Adjust icon colors
+                const icon = btn.querySelector('svg');
+                if(icon) {
+                    icon.classList.remove('text-gray-900');
+                    icon.classList.add('text-gray-400');
+                }
+            });
+
+            const activeBtn = document.getElementById(`nav-${state.currentView}`) || document.getElementById(`nav-expenses`);
+            if (activeBtn) {
+                activeBtn.classList.add('bg-gray-50', 'text-gray-900', 'border-gray-200/60', 'shadow-sm');
+                activeBtn.classList.remove('text-gray-500', 'border-transparent');
+                const activeIcon = activeBtn.querySelector('svg');
+                if(activeIcon) {
+                    activeIcon.classList.add('text-gray-900');
+                    activeIcon.classList.remove('text-gray-400');
+                }
+            }
+        };
+
+        const renderApp = (animate = true) => {
+            const container = document.getElementById('app-content');
+            let content = '';
+
+            switch(state.currentView) {
+                case 'dashboard': content = renderDashboard(); break;
+                case 'vehicles': content = renderVehicles(); break;
+                case 'dispatch': content = renderDispatch(); break;
+                case 'maintenance': content = renderMaintenance(); break;
+                case 'drivers': content = renderDrivers(); break;
+                case 'expenses': 
+                case 'analytics': content = renderExpensesAnalytics(); break;
+                default: content = '<div>View not found</div>';
+            }
+
+            container.innerHTML = content;
+            lucide.createIcons();
+            updateSidebarUI();
+
+            if (animate) {
+                anime({
+                    targets: container.firstElementChild,
+                    translateY: [20, 0],
+                    opacity: [0, 1],
+                    duration: 400,
+                    easing: 'easeOutCubic'
+                });
+            }
+        };
+
+        const changeView = (view) => {
+            state.currentView = view;
+            renderApp(true);
+        };
+
+        // --- MODAL LOGIC ---
+
+        const populateSelects = () => {
+            // Trip Modal Form
+            const vSelect = document.getElementById('trip-vehicle-select');
+            vSelect.innerHTML = '<option value="">Select an option</option>' + 
+                state.vehicles.filter(v => v.status === 'Available').map(v => 
+                    `<option value="${v.id}">${v.name} (${v.plate}) - Max: ${v.capacity}kg</option>`
+                ).join('');
+
+            const dSelect = document.getElementById('trip-driver-select');
+            dSelect.innerHTML = '<option value="">Select an option</option>' + 
+                state.drivers.filter(d => d.status === 'Available').map(d => 
+                    `<option value="${d.id}">${d.name} (Safety: ${d.safetyScore})</option>`
+                ).join('');
+
+            // Maintenance Modal Form
+            const mSelect = document.getElementById('maint-vehicle-select');
+            mSelect.innerHTML = '<option value="">Select an option</option>' + 
+                state.vehicles.map(v => 
+                    `<option value="${v.id}">${v.name} (${v.plate})</option>`
+                ).join('');
+        };
+
+        const openModal = (type) => {
+            populateSelects();
+            const modal = document.getElementById(`modal-${type}`);
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            
+            // Background blur animation
+            anime({
+                targets: modal,
+                opacity: [0, 1],
+                duration: 200,
+                easing: 'linear'
+            });
+
+            // Box zoom animation
+            anime({
+                targets: modal.querySelector('.modal-box'),
+                scale: [0.95, 1],
+                opacity: [0, 1],
+                duration: 250,
+                easing: 'easeOutBack'
+            });
+        };
+
+        const closeModal = (type) => {
+            const modal = document.getElementById(`modal-${type}`);
+            
+            anime({
+                targets: modal.querySelector('.modal-box'),
+                scale: [1, 0.95],
+                opacity: [1, 0],
+                duration: 150,
+                easing: 'easeInQuad'
+            });
+
+            anime({
+                targets: modal,
+                opacity: [1, 0],
+                duration: 200,
+                easing: 'linear',
+                complete: () => {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                    document.getElementById(`form-${type}`).reset();
+                }
+            });
+        };
+
+        // --- ACTIONS ---
+
+        const toggleVehicleStatus = (id) => {
+            state.vehicles = state.vehicles.map(veh => 
+                veh.id === id ? {...veh, status: veh.status === 'Out of Service' ? 'Available' : 'Out of Service'} : veh
+            );
+            renderApp(false);
+        };
+
+        const completeTrip = (tripId) => {
+            const trip = state.trips.find(t => t.id === tripId);
+            if(trip) {
+                state.trips = state.trips.map(t => t.id === tripId ? { ...t, status: 'Completed' } : t);
+                state.vehicles = state.vehicles.map(v => v.id === trip.vehicleId ? { ...v, status: 'Available' } : v);
+                state.drivers = state.drivers.map(d => d.id === trip.driverId ? { ...d, status: 'Available' } : d);
+                renderApp(false);
+            }
+        };
+
+        // --- FORMS SUBMITS ---
+
+        const addVehicle = (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const newVehicle = {
+                id: `V-${Math.floor(Math.random() * 1000) + 200}`,
+                name: formData.get('name'),
+                plate: formData.get('plate'),
+                capacity: Number(formData.get('capacity')),
+                odometer: Number(formData.get('odometer')),
+                status: 'Available'
+            };
+            state.vehicles.push(newVehicle);
+            closeModal('vehicle');
+            renderApp(false);
+        };
+
+        const dispatchTrip = (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const vehicleId = formData.get('vehicleId');
+            const driverId = formData.get('driverId');
+            const weight = Number(formData.get('weight'));
+
+            const vehicle = state.vehicles.find(v => v.id === vehicleId);
+            const driver = state.drivers.find(d => d.id === driverId);
+
+            if (weight > vehicle.capacity) {
+                alert(`Error: Cargo weight (${weight}kg) exceeds vehicle capacity (${vehicle.capacity}kg).`);
+                return;
+            }
+            if (new Date(driver.licenseExpiry) < new Date()) {
+                alert(`Error: Driver ${driver.name}'s license has expired!`);
+                return;
+            }
+
+            const newTrip = {
+                id: `TRP-${Math.floor(Math.random() * 10000) + 2000}`,
+                vehicleId,
+                driverId,
+                status: 'Dispatched',
+                cargoWeight: weight,
+                date: new Date().toISOString().split('T')[0]
+            };
+
+            state.trips.push(newTrip);
+            state.vehicles = state.vehicles.map(v => v.id === vehicleId ? { ...v, status: 'On Trip' } : v);
+            state.drivers = state.drivers.map(d => d.id === driverId ? { ...d, status: 'On Duty' } : d);
+            
+            closeModal('trip');
+            renderApp(false);
+        };
+
+        const logMaintenance = (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const vehicleId = formData.get('vehicleId');
+            
+            const newLog = {
+                id: `ML-${Math.floor(Math.random() * 1000) + 100}`,
+                vehicleId,
+                type: formData.get('type'),
+                cost: Number(formData.get('cost')),
+                date: formData.get('date')
+            };
+
+            state.maintenanceLogs.push(newLog);
+            state.vehicles = state.vehicles.map(v => v.id === vehicleId ? { ...v, status: 'In Shop' } : v);
+            
+            closeModal('maintenance');
+            renderApp(false);
+        };
+
+        // --- INITIALIZE ---
+        document.addEventListener('DOMContentLoaded', () => {
+            renderApp(true);
+        });
+
+    </script>
+</body>
+</html>
