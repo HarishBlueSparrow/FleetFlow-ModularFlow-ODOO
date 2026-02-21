@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FleetFlow | Premium Logistics Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --bg-main: #ffffff;
+            --bg-side: #f9fafb;
+            --border: #f3f4f6;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-main); color: #111827; margin: 0; padding: 0; }
+        
+        /* Fixed height layout for SPA */
+        .app-height { height: 100vh; height: -webkit-fill-available; }
+        
+        .sidebar-item.active { background-color: #ffffff; color: #111827; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-radius: 8px; font-weight: 600; }
+        .sidebar-item:not(.active) { color: #6b7280; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 10px; }
+        
+        .modal-overlay { background: rgba(0, 0, 0, 0.2); backdrop-filter: blur(4px); display: none; opacity: 0; z-index: 100; }
+        .status-badge { padding: 2px 10px; border-radius: 9999px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.025em; }
+        .status-active { background: #ecfdf5; color: #10b981; }
+        .status-busy { background: #eff6ff; color: #3b82f6; }
+        .status-shop { background: #fff7ed; color: #f97316; }
+        .status-locked { background: #fef2f2; color: #ef4444; }
+        
+        #mobile-sidebar { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .sidebar-open #mobile-sidebar { transform: translateX(0); }
+        
+        .property-label { color: #6b7280; font-size: 13px; }
+        .property-value { color: #111827; font-size: 14px; font-weight: 500; }
+        
+        .btn-primary { background: #111827; color: white; transition: all 0.2s; }
+        .btn-primary:hover { background: #374151; transform: translateY(-1px); }
+    </style>
+</head>
+<body>
+
+    <!-- LOGIN SCREEN -->
+    <div id="login-screen" class="fixed inset-0 z-[200] bg-white flex items-center justify-center p-4">
+        <div class="max-w-md w-full">
+            <div class="flex flex-col items-center mb-10">
+                <div class="w-12 h-12 bg-black rounded-xl flex items-center justify-center mb-4">
+                    <span class="text-white font-bold italic">FF</span>
+                </div>
+                <h1 class="text-2xl font-extrabold tracking-tight">FleetFlow</h1>
+                <p class="text-slate-500 text-sm">Logistics Management System</p>
+            </div>
+            <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-2xl shadow-slate-200">
+                <form id="login-form" class="space-y-5">
+                    <div>
+                        <label class="text-xs font-bold uppercase text-slate-400 mb-1 block">Identity</label>
+                        <input type="text" placeholder="Username" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-black transition-all">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold uppercase text-slate-400 mb-1 block">Security</label>
+                        <input type="password" placeholder="Password" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-black transition-all">
+                    </div>
+                    <button type="submit" class="w-full btn-primary py-4 rounded-xl font-bold shadow-lg shadow-slate-200 mt-2">Sign In</button>
+                    <button type="button" class="w-full text-slate-400 text-xs font-semibold hover:text-black transition-colors">Request Registration Access</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP STRUCTURE -->
+    <div id="app-container" class="hidden w-full app-height flex overflow-hidden">
+        <!-- Sidebar -->
+        <aside id="mobile-sidebar" class="fixed lg:relative z-50 w-64 bg-[#f9fafb] border-r border-gray-100 flex flex-col no-print -translate-x-full lg:translate-x-0" style="position: sticky; height:100vh ">
+            <div class="p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-sm font-bold">Stroom</h1>
+                        <p class="text-[10px] text-gray-400">Powered by FleetFlow</p>
+                    </div>
+                    <button class="lg:hidden text-gray-400" onclick="toggleSidebar()"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                </div>
+            </div>
+
+            <div class="px-3 mb-4">
+                <div class="relative">
+                    <input type="text" placeholder="Search" class="w-full pl-8 pr-4 py-1.5 bg-gray-100 border-none rounded-lg text-xs outline-none focus:ring-1 focus:ring-gray-200">
+                    <svg class="w-3.5 h-3.5 absolute left-2.5 top-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </div>
+            </div>
+
+            <nav class="flex-1 px-3 space-y-6 overflow-y-auto custom-scrollbar">
+                <!-- Group 1 -->
+                <div>
+                    <button onclick="router.navigate('dashboard')" class="sidebar-item w-full flex items-center space-x-3 px-3 py-2 text-xs" data-page="dashboard">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                        <span>Dashboard</span>
+                    </button>
+                </div>
+                <!-- Group 2: Vehicles -->
+                <div class="space-y-1">
+                    <p class="px-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Fleet</p>
+                    <button onclick="router.navigate('vehicles')" class="sidebar-item w-full flex items-center space-x-3 px-3 py-2 text-xs" data-page="vehicles">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path><path d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1"></path></svg>
+                        <span>Vehicles Registry</span>
+                    </button>
+                    <button onclick="router.navigate('drivers')" class="sidebar-item w-full flex items-center space-x-3 px-3 py-2 text-xs" data-page="drivers">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                        <span>Performance</span>
+                    </button>
+                </div>
+                <!-- Group 3: Operations -->
+                <div class="space-y-1">
+                    <p class="px-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Operations</p>
+                    <button onclick="router.navigate('trips')" class="sidebar-item w-full flex items-center space-x-3 px-3 py-2 text-xs" data-page="trips">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
+                        <span>Trip Dispatcher</span>
+                    </button>
+                    <button onclick="router.navigate('expenses')" class="sidebar-item w-full flex items-center space-x-3 px-3 py-2 text-xs" data-page="expenses">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2"></path><circle cx="12" cy="12" r="9"></circle></svg>
+                        <span>Expenses & Fuel</span>
+                    </button>
+                </div>
+                <!-- Group 4: Service -->
+                <div class="space-y-1">
+                    <p class="px-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Service</p>
+                    <button onclick="router.navigate('maintenance')" class="sidebar-item w-full flex items-center space-x-3 px-3 py-2 text-xs" data-page="maintenance">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg>
+                        <span>Maintenance Logs</span>
+                    </button>
+                    <button onclick="router.navigate('analytics')" class="sidebar-item w-full flex items-center space-x-3 px-3 py-2 text-xs" data-page="analytics">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                        <span>Analytics</span>
+                    </button>
+                </div>
+            </nav>
+
+            <div class="p-4 border-t border-gray-100 flex items-center space-x-3">
+                <div class="w-8 h-8 rounded-full bg-slate-200"></div>
+                <div class="flex-1 overflow-hidden">
+                    <p class="text-[11px] font-bold truncate">Quinten Adema</p>
+                    <p class="text-[9px] text-gray-400 truncate">quinten@ademagroup.com</p>
+                </div>
+                <button onclick="location.reload()" class="text-gray-400 hover:text-black"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4 4H7"></path></svg></button>
+            </div>
+        </aside>
+
+        <!-- Content Area -->
+        <main class="flex-1 flex flex-col min-w-0 bg-white overflow-hidden">
+            <header class="h-14 border-b border-gray-100 flex items-center justify-between px-6 shrink-0">
+                <div class="flex items-center space-x-4">
+                    <button onclick="toggleSidebar()" class="lg:hidden p-2 text-gray-400 hover:bg-gray-50 rounded-lg">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                    </button>
+                    <div class="flex items-center space-x-2 text-[10px] text-gray-400">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                        <span>Vehicles</span>
+                        <span>&rsaquo;</span>
+                        <span class="text-black font-medium" id="breadcrumb-current">Dashboard</span>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <div class="w-6 h-6 rounded-full border border-orange-200 bg-orange-50"></div>
+                </div>
+            </header>
+
+            <!-- Scrollable Content View -->
+            <div id="view-container" class="flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-10">
+                <!-- Dynamic Content Injected Here -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal-overlay" class="fixed inset-0 modal-overlay flex items-center justify-center p-4">
+        <div id="modal-content" class="bg-white rounded-3xl shadow-2xl max-w-lg w-full border border-slate-100 overflow-hidden transform scale-95 opacity-0 transition-all duration-300"></div>
+    </div>
+
+    <script>
+        // --- DATA ENGINE ---
+        const Store = {
+            get: (key) => JSON.parse(localStorage.getItem(`ff_prem_${key}`)) || [],
+            set: (key, data) => localStorage.setItem(`ff_prem_${key}`, JSON.stringify(data)),
+            init() {
+                if (!localStorage.getItem('ff_prem_vehicles')) this.set('vehicles', [
+                    { id: 'V-2025-01', plate: 'STRM-01', model: 'Stroom Bike.1', type: 'E-Bike', capacity: 150, odometer: 1240, status: 'Active', created: 'Nov 12, 2025' },
+                    { id: 'V-2025-02', plate: 'STRM-02', model: 'Stroom Bike.1', type: 'E-Bike', capacity: 150, odometer: 0, status: 'Active', created: 'Nov 14, 2025' }
+                ]);
+                if (!localStorage.getItem('ff_prem_trips')) this.set('trips', []);
+                if (!localStorage.getItem('ff_prem_drivers')) this.set('drivers', [
+                    { id: 'D1', name: 'Quinten Adema', license: 'NL-2291', expiry: '2028-10-10', completion: '98%', safety: '100%', complaints: 0, status: 'Available' }
+                ]);
+            }
+        };
+
+        // --- NAVIGATION ---
+        const router = {
+            navigate(page) {
+                document.getElementById('breadcrumb-current').innerText = page.charAt(0).toUpperCase() + page.slice(1);
+                document.querySelectorAll('.sidebar-item').forEach(b => b.classList.toggle('active', b.dataset.page === page));
+                const el = document.getElementById('view-container');
+                el.innerHTML = '';
+                this.render(page, el);
+                
+                // Sidebar toggle close on mobile after navigation
+                if (window.innerWidth < 1024) document.body.classList.remove('sidebar-open');
+
+                anime({ targets: el.children, opacity: [0, 1], translateY: [15, 0], duration: 450, delay: anime.stagger(40), easing: 'easeOutQuart' });
+            },
+            render(page, el) {
+                switch(page) {
+                    case 'dashboard': renderDashboard(el); break;
+                    case 'vehicles': renderVehicles(el); break;
+                    case 'trips': renderTrips(el); break;
+                    case 'maintenance': renderMaintenance(el); break;
+                    case 'expenses': renderExpenses(el); break;
+                    case 'drivers': renderDrivers(el); break;
+                    case 'analytics': renderAnalytics(el); break;
+                }
+            }
+        };
+
+        // --- VIEWS ---
+
+        function renderDashboard(el) {
+            el.innerHTML = `
+                <div class="max-w-6xl mx-auto space-y-8 lg:space-y-12">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+                        <div>
+                            <h2 class="text-3xl lg:text-4xl font-extrabold tracking-tight mb-1">Fleet Overview</h2>
+                            <p class="text-gray-400 text-sm">Real-time logistics performance</p>
+                        </div>
+                        <div class="flex gap-3">
+                            <button onclick="router.navigate('trips')" class="px-4 py-2 border border-gray-200 rounded-lg text-xs font-bold hover:bg-gray-50 transition-all">New Trip</button>
+                            <button onclick="openVehicleModal()" class="px-4 py-2 btn-primary rounded-lg text-xs font-bold transition-all">Add Vehicle</button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-10">
+                        <div class="space-y-4 p-6 lg:p-8 border border-gray-100 rounded-3xl bg-gray-50/50">
+                            <p class="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Active Assets</p>
+                            <p class="text-4xl lg:text-5xl font-black">${Store.get('vehicles').length}</p>
+                            <p class="text-xs text-green-500 font-bold">+2 this week</p>
+                        </div>
+                        <div class="space-y-4 p-6 lg:p-8 border border-gray-100 rounded-3xl">
+                            <p class="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Trips Today</p>
+                            <p class="text-4xl lg:text-5xl font-black">14</p>
+                            <p class="text-xs text-blue-500 font-bold">85% Utilization</p>
+                        </div>
+                        <div class="space-y-4 p-6 lg:p-8 border border-gray-100 rounded-3xl">
+                            <p class="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Maintenance</p>
+                            <p class="text-4xl lg:text-5xl font-black">02</p>
+                            <p class="text-xs text-orange-500 font-bold">Next service: Tomorrow</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white border border-gray-100 rounded-3xl overflow-hidden shadow-sm">
+                        <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+                            <h3 class="font-bold">Live Fleet Status</h3>
+                            <button class="text-xs text-blue-500 font-bold">Detailed View</button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left min-w-[500px]">
+                                <thead class="bg-gray-50/50 text-[10px] uppercase font-bold text-gray-400">
+                                    <tr><th class="px-6 py-4">ID</th><th class="px-6 py-4">Vehicle</th><th class="px-6 py-4">Driver</th><th class="px-6 py-4 text-right">Status</th></tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-50 text-xs">
+                                    ${Store.get('vehicles').map(v => `
+                                        <tr class="hover:bg-gray-50 transition-colors cursor-pointer">
+                                            <td class="px-6 py-4 font-mono text-gray-400">${v.id}</td>
+                                            <td class="px-6 py-4 font-bold">${v.model}</td>
+                                            <td class="px-6 py-4 text-gray-500">Unassigned</td>
+                                            <td class="px-6 py-4 text-right"><span class="status-badge status-active">${v.status}</span></td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderVehicles(el) {
+            const vList = Store.get('vehicles');
+            const selected = vList[0] || {};
+
+            el.innerHTML = `
+                <div class="max-w-7xl mx-auto space-y-8">
+                    <div class="flex flex-col sm:flex-row justify-between items-start gap-4">
+                        <div>
+                            <h2 class="text-3xl lg:text-4xl font-extrabold tracking-tight">${selected.model}</h2>
+                            <p class="text-gray-400 text-lg">${selected.id}</p>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button class="p-2 border border-gray-100 rounded-lg"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg></button>
+                            <button class="p-2 border border-gray-100 rounded-lg"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-10 lg:gap-12">
+                        <!-- Main Panel -->
+                        <div class="lg:col-span-2 space-y-12">
+                            <div class="aspect-video bg-gray-50 rounded-[2.5rem] flex items-center justify-center border border-gray-100 p-8 lg:p-20">
+                                <svg class="w-full h-full text-slate-200" viewBox="0 0 24 24" fill="currentColor"><path d="M21 17h-2.586a1 1 0 01-.707-.293l-3.414-3.414a1 1 0 01-.293-.707V11a1 1 0 00-1-1H4a1 1 0 00-1 1v5a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1"></path></svg>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-8 gap-x-12">
+                                <div class="space-y-1">
+                                    <p class="property-label flex items-center">VIN <svg class="w-3 h-3 ml-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536"></path></svg></p>
+                                    <p class="property-value">${selected.id}</p>
+                                </div>
+                                <div class="space-y-1">
+                                    <p class="property-label">Model</p>
+                                    <p class="property-value">${selected.model}</p>
+                                </div>
+                                <div class="space-y-1">
+                                    <p class="property-label">Odometer</p>
+                                    <p class="property-value">${selected.odometer} km</p>
+                                </div>
+                                <div class="space-y-1">
+                                    <p class="property-label">Status</p>
+                                    <span class="status-badge status-active">${selected.status}</span>
+                                </div>
+                                <div class="space-y-1">
+                                    <p class="property-label">Created at</p>
+                                    <p class="property-value">${selected.created}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Side Details -->
+                        <div class="space-y-10 border-t lg:border-t-0 lg:border-l border-gray-100 pt-10 lg:pt-0 lg:pl-12">
+                            <section class="space-y-4">
+                                <div class="flex justify-between items-center">
+                                    <h4 class="font-bold text-sm">Customers</h4>
+                                    <span class="text-[10px] font-bold text-blue-500 uppercase cursor-pointer">Open</span>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-8 h-8 rounded-full bg-slate-100"></div>
+                                    <div class="flex-1">
+                                        <p class="text-xs font-bold">Quinten Adema</p>
+                                        <p class="text-[10px] text-gray-400">Primary Captain</p>
+                                    </div>
+                                    <svg class="w-3 h-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142"></path></svg>
+                                </div>
+                            </section>
+
+                            <section class="space-y-4">
+                                <h4 class="font-bold text-sm">Warranty</h4>
+                                <div class="flex justify-between text-xs">
+                                    <span class="text-gray-400">Profile</span>
+                                    <span class="font-medium">None</span>
+                                </div>
+                            </section>
+
+                            <section class="space-y-4">
+                                <h4 class="font-bold text-sm">Maintenance</h4>
+                                <div class="flex justify-between text-xs">
+                                    <span class="text-gray-400">Profile</span>
+                                    <span class="font-medium">None</span>
+                                </div>
+                            </section>
+
+                            <section class="space-y-4">
+                                <h4 class="font-bold text-sm">Location</h4>
+                                <div class="aspect-square bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-center max-w-[200px]">
+                                    <p class="text-[10px] font-bold text-gray-300">GPS OFFLINE</p>
+                                </div>
+                            </section>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderTrips(el) {
+            const vIdle = Store.get('vehicles').filter(v => v.status === 'Active');
+            const dAvail = Store.get('drivers').filter(d => d.status === 'Available');
+
+            el.innerHTML = `
+                <div class="max-w-4xl mx-auto space-y-8 lg:space-y-12">
+                    <h2 class="text-3xl lg:text-4xl font-extrabold tracking-tight">Trip Dispatch</h2>
+                    
+                    <div class="bg-white border border-gray-100 rounded-3xl p-6 lg:p-10 space-y-8 lg:space-y-10 shadow-sm">
+                        <form id="trip-form" class="space-y-8">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-10">
+                                <div class="space-y-2">
+                                    <label class="text-[10px] font-black uppercase text-gray-400 tracking-widest">Select Vehicle</label>
+                                    <select id="t-veh" required class="w-full bg-gray-50 border-none px-4 py-3 rounded-xl text-sm outline-none focus:ring-1 focus:ring-gray-200">
+                                        <option value="">Search available fleet...</option>
+                                        ${vIdle.map(v => `<option value="${v.id}">${v.model} (${v.plate})</option>`).join('')}
+                                    </select>
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-[10px] font-black uppercase text-gray-400 tracking-widest">Assign Driver</label>
+                                    <select id="t-dri" required class="w-full bg-gray-50 border-none px-4 py-3 rounded-xl text-sm outline-none focus:ring-1 focus:ring-gray-200">
+                                        <option value="">Search captain...</option>
+                                        ${dAvail.map(d => `<option value="${d.id}">${d.name}</option>`).join('')}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-10">
+                                <div class="space-y-2">
+                                    <label class="text-[10px] font-black uppercase text-gray-400 tracking-widest">Cargo Load (kg)</label>
+                                    <input type="number" id="t-load" required class="w-full bg-gray-50 border-none px-4 py-3 rounded-xl text-sm outline-none focus:ring-1 focus:ring-gray-200">
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-[10px] font-black uppercase text-gray-400 tracking-widest">Est. Fuel Cost</label>
+                                    <input type="number" id="t-fuel" required class="w-full bg-gray-50 border-none px-4 py-3 rounded-xl text-sm outline-none focus:ring-1 focus:ring-gray-200">
+                                </div>
+                            </div>
+
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black uppercase text-gray-400 tracking-widest">Destination Address</label>
+                                <input type="text" id="t-dest" required class="w-full bg-gray-50 border-none px-4 py-3 rounded-xl text-sm outline-none focus:ring-1 focus:ring-gray-200">
+                            </div>
+
+                            <button type="submit" class="btn-primary w-full py-4 rounded-2xl font-bold shadow-xl">Confirm & Authorize Dispatch</button>
+                        </form>
+                    </div>
+                </div>
+            `;
+            document.getElementById('trip-form').addEventListener('submit', handleDispatch);
+        }
+
+        // --- HANDLERS & MODALS ---
+
+        function handleDispatch(e) {
+            e.preventDefault();
+            const vId = document.getElementById('t-veh').value;
+            const load = parseInt(document.getElementById('t-load').value);
+            const veh = Store.get('vehicles').find(v => v.id === vId);
+
+            if (load > veh.capacity) {
+                alert(`Safety Warning: Load exceeds vehicle capacity (${veh.capacity}kg). Dispatch denied.`);
+                return;
+            }
+
+            const v = Store.get('vehicles').map(item => item.id === vId ? {...item, status: 'Busy'} : item);
+            Store.set('vehicles', v);
+            
+            router.navigate('dashboard');
+        }
+
+        function openVehicleModal() {
+            const over = document.getElementById('modal-overlay');
+            const cont = document.getElementById('modal-content');
+            cont.innerHTML = `
+                <div class="p-8 lg:p-10 space-y-8">
+                    <h3 class="text-2xl font-black">Register Asset</h3>
+                    <form id="v-form" class="space-y-5">
+                        <input type="text" id="mv-id" placeholder="ID (e.g. V-2025-05)" required class="w-full px-4 py-3 bg-gray-50 rounded-xl outline-none">
+                        <input type="text" id="mv-model" placeholder="Model Name" required class="w-full px-4 py-3 bg-gray-50 rounded-xl outline-none">
+                        <div class="grid grid-cols-2 gap-4">
+                            <input type="text" id="mv-plate" placeholder="Plate #" required class="px-4 py-3 bg-gray-50 rounded-xl outline-none">
+                            <input type="number" id="mv-cap" placeholder="Capacity (kg)" required class="px-4 py-3 bg-gray-50 rounded-xl outline-none">
+                        </div>
+                        <div class="flex gap-3 pt-4">
+                            <button type="button" onclick="closeModal()" class="flex-1 py-3 font-bold text-gray-400">Cancel</button>
+                            <button type="submit" class="flex-1 btn-primary py-3 rounded-xl font-bold">Save Asset</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+            over.style.display = 'flex';
+            setTimeout(() => { over.style.opacity = '1'; cont.classList.remove('scale-95', 'opacity-0'); }, 10);
+            
+            document.getElementById('v-form').onsubmit = (e) => {
+                e.preventDefault();
+                const v = Store.get('vehicles');
+                v.push({
+                    id: document.getElementById('mv-id').value,
+                    plate: document.getElementById('mv-plate').value,
+                    model: document.getElementById('mv-model').value,
+                    type: 'Fleet',
+                    capacity: parseInt(document.getElementById('mv-cap').value),
+                    odometer: 0,
+                    status: 'Active',
+                    created: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                });
+                Store.set('vehicles', v);
+                closeModal();
+                router.navigate('vehicles');
+            };
+        }
+
+        function closeModal() {
+            const over = document.getElementById('modal-overlay');
+            const cont = document.getElementById('modal-content');
+            over.style.opacity = '0';
+            cont.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => over.style.display = 'none', 300);
+        }
+
+        function toggleSidebar() { document.body.classList.toggle('sidebar-open'); }
+
+        function renderAnalytics(el) {
+            el.innerHTML = `
+                <div class="max-w-6xl mx-auto space-y-12">
+                    <h2 class="text-3xl lg:text-4xl font-extrabold tracking-tight">Performance Analytics</h2>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+                        <div class="p-6 lg:p-8 border border-gray-100 rounded-3xl min-h-[320px]">
+                            <h4 class="font-bold text-xs uppercase text-gray-400 mb-6">Efficiency Trends</h4>
+                            <canvas id="eff-chart"></canvas>
+                        </div>
+                        <div class="p-6 lg:p-8 border border-gray-100 rounded-3xl min-h-[320px]">
+                            <h4 class="font-bold text-xs uppercase text-gray-400 mb-6">Cost Breakdown</h4>
+                            <canvas id="cost-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            `;
+            setTimeout(() => {
+                new Chart(document.getElementById('eff-chart'), { type: 'line', data: { labels: ['M','T','W','T','F'], datasets: [{ data: [12, 19, 13, 15, 22], borderColor: '#111827', tension: 0.4 }] }, options: { maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+                new Chart(document.getElementById('cost-chart'), { type: 'bar', data: { labels: ['Fuel','Repair','Salaries'], datasets: [{ data: [40, 20, 100], backgroundColor: '#111827' }] }, options: { maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+            }, 100);
+        }
+
+        function renderMaintenance(el) { el.innerHTML = `<div class="p-20 text-center"><p class="text-gray-300 font-bold italic">Maintenance Logs Module is under deployment.</p></div>`; }
+        function renderExpenses(el) { el.innerHTML = `<div class="p-20 text-center"><p class="text-gray-300 font-bold italic">Expense Wallet Module is under deployment.</p></div>`; }
+        function renderDrivers(el) { el.innerHTML = `<div class="p-20 text-center"><p class="text-gray-300 font-bold italic">Driver Performance & Safety Profiles Module is under deployment.</p></div>`; }
+
+        // --- AUTH & INIT ---
+        document.getElementById('login-form').onsubmit = (e) => {
+            e.preventDefault();
+            anime({ targets: '#login-screen', opacity: 0, scale: 1.1, duration: 600, easing: 'easeInOutQuart', complete: () => {
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('app-container').classList.remove('hidden');
+                router.navigate('dashboard');
+            }});
+        };
+
+        window.onload = () => { Store.init(); };
+    </script>
+</body>
+</html>
